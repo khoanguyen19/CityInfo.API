@@ -1,4 +1,7 @@
-﻿using CityInfo.Models;
+﻿using AutoMapper;
+using CityInfo.Entities;
+using CityInfo.Models;
+using CityInfo.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CityInfo.Controllers
@@ -7,38 +10,31 @@ namespace CityInfo.Controllers
   [Route("api/cities")]
   public class CitiesController : ControllerBase
   {
-    private readonly CityDataStore _cityDataStore;
+        private readonly ICityInfoRepository _cityInfoRepository;
+        private readonly IMapper _mapper;
 
-    /*[HttpGet]
-public JsonResult GetCities()
-{
-return new JsonResult(_cityDataStore.Cities);
-}*/
-
-    public CitiesController(CityDataStore cityDataStore)
+        public CitiesController(ICityInfoRepository cityInfoRepository, IMapper mapper)
     {
-      _cityDataStore = cityDataStore;
-    }
+            _cityInfoRepository = cityInfoRepository;
+            _mapper = mapper;
+        }
 
     [HttpGet]
-    public ActionResult<IEnumerable<CityDto>> GetCityByName([FromQuery] string? name)
+    public async Task<ActionResult<IEnumerable<CityWithoutPointOfInterest>>> GetCityies()
     {
-      if (name == null)
-      {
-        return Ok(_cityDataStore.Cities);
-      }
-      return Ok(_cityDataStore.Cities.FirstOrDefault(x => x.Name == name));
+        var cityEntities = await _cityInfoRepository.GetCitiesAsync();
+        return Ok(_mapper.Map<IEnumerable<CityWithoutPointOfInterest>>(cityEntities));
     }
 
     [HttpGet("{id}")]
-    public ActionResult<CityDto> GetCity(int id)
+    public async Task<ActionResult<CityDto>> GetCity(int id, bool includePointOfInterest = false)
     {
-      var cityToReturn = _cityDataStore.Cities.FirstOrDefault(x => x.Id == id);
-      if (cityToReturn == null)
-      {
-        return NotFound();
-      }
-      return Ok(cityToReturn);
+        var cityToReturn = await _cityInfoRepository.GetCityAsync(id, includePointOfInterest);
+        if (cityToReturn == null)
+        {
+            return NotFound();
+        }
+        return Ok(_mapper.Map<CityDto>(cityToReturn));
     }
   }
 }
